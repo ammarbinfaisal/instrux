@@ -90,6 +90,37 @@ def parse_blocks(text: str) -> dict[str, str]:
     return blocks
 
 
+def update_global_gitignore():
+    import os
+    import subprocess
+
+    result = subprocess.run(
+        ["git", "config", "--global", "core.excludesfile"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        excludes_file = Path.home() / ".gitignore_global"
+        subprocess.run(
+            ["git", "config", "--global", "core.excludesfile", str(excludes_file)],
+            check=True,
+        )
+    else:
+        raw = result.stdout.strip()
+        excludes_file = Path(os.path.expanduser(raw))
+
+    existing = excludes_file.read_text() if excludes_file.exists() else ""
+    to_add = [e for e in IGNORE_ENTRIES if e not in existing.splitlines()]
+    if to_add:
+        with open(excludes_file, "a") as f:
+            if existing and not existing.endswith("\n"):
+                f.write("\n")
+            if not existing.strip():
+                f.write("# agent instructions\n")
+            for entry in to_add:
+                f.write(f"{entry}\n")
+        print(f"  updated {excludes_file}")
+
+
 def update_gitignore(target: Path):
     gitignore = target / ".gitignore"
     if gitignore.exists():
@@ -138,7 +169,7 @@ def cmd_init(args):
         instructions_path.write_text("\n\n".join(parts) + "\n")
 
     print(f"  wrote instructions.md [{', '.join(blocks)}]")
-    update_gitignore(target)
+    update_global_gitignore()
 
 
 def cmd_add(args):
