@@ -2,7 +2,7 @@
 
 **instruct + ux** — streamlined instructions for AI coding agents.
 
-Manage shared, toggleable prompt blocks across `CLAUDE.md` (Claude Code), `AGENTS.md` (OpenAI Codex), and a common `instructions.md`. Write your guidance once, apply it to any project, swap blocks in and out as needed.
+Manage shared, toggleable prompt blocks across `CLAUDE.md` (Claude Code), `AGENTS.md` (OpenAI Codex), and a common `instructions.md`. Write your guidance once, apply it to any project, swap blocks in and out as needed, and keep agent-specific variants where they belong.
 
 ## Why
 
@@ -36,7 +36,7 @@ No dependencies beyond Python 3.
 
 ## Blocks
 
-Reusable prompt fragments that get wrapped in `<!-- block:name -->` tags inside `instructions.md` — easy to parse, easy to toggle.
+Reusable prompt fragments that get wrapped in `<!-- block:name -->` tags. Shared content lands in `instructions.md`; optional agent-specific sections land in `CLAUDE.md` or `AGENTS.md`.
 
 Blocks live in `./blocks/` (gitignored, never committed). Defaults are seeded on first run:
 
@@ -54,8 +54,23 @@ echo "your prompt here" > blocks/my-rule.txt
 ./run.sh add my-rule /path/to/project
 ```
 
+Flat `.txt` files stay shared-only. If you want agent-specific variants, split the block into sections:
+
+```text
+[shared]
+Rules every agent should follow
+
+[claude]
+Claude-specific guidance
+
+[codex]
+Codex-specific guidance
+```
+
+`[agents]` is accepted as an alias for `[codex]`.
+
 ## How it works
 
-- `CLAUDE.md` and `AGENTS.md` both just say: read `instructions.md`.
-- `instructions.md` holds your project-specific notes at the top, with toggled blocks appended below.
+- `instructions.md` holds your project-specific notes at the top, with shared block content appended below.
+- `CLAUDE.md` and `AGENTS.md` keep the shared `instructions.md` pointer and receive any matching agent-specific block content.
 - Agent instruction files are added to `.gitignore` automatically — they stay local to the developer.
