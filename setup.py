@@ -18,6 +18,8 @@ IGNORE_ENTRIES = ["CLAUDE.md", "AGENTS.md", "instructions.md"]
 
 DEFAULT_BLOCKS = ["parallel-dev", "smart-reuse"]
 
+LOCAL_DEFAULTS_FILE = "defaults.local"
+
 AGENT_FILES = {
     "claude": ("CLAUDE.md", CLAUDE_MD.strip()),
     "codex": ("AGENTS.md", AGENTS_MD.strip()),
@@ -118,6 +120,30 @@ def load_block(name: str) -> str:
 def available_blocks() -> list[str]:
     ensure_blocks_dir()
     return sorted(p.stem for p in BLOCKS_DIR.glob("*.txt"))
+
+
+def local_default_blocks() -> list[str]:
+    ensure_blocks_dir()
+    path = BLOCKS_DIR / LOCAL_DEFAULTS_FILE
+    if not path.exists():
+        return []
+    names = []
+    for line in path.read_text().splitlines():
+        name = line.split("#", 1)[0].strip()
+        if name:
+            names.append(name)
+    return names
+
+
+def resolved_default_blocks() -> list[str]:
+    seen = set()
+    ordered = []
+    for name in DEFAULT_BLOCKS + local_default_blocks():
+        if name in seen:
+            continue
+        seen.add(name)
+        ordered.append(name)
+    return ordered
 
 
 def wrap_block(name: str, content: str) -> str:
@@ -265,7 +291,7 @@ def cmd_init(args):
         sys.exit(1)
 
     ensure_blocks_dir()
-    blocks = DEFAULT_BLOCKS + (args.extra_blocks or [])
+    blocks = resolved_default_blocks() + (args.extra_blocks or [])
     sections_by_block = {name: block_sections(name) for name in blocks}
 
     for agent, (filename, default_base) in AGENT_FILES.items():
