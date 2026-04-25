@@ -68,6 +68,33 @@ payoff, leave it concrete.
 
 Never abstract preemptively, never for architectural beauty alone. Every abstraction \
 must earn its place by making the next task cheaper.""",
+    "react-no-useeffect": """\
+[shared]
+React discipline for this codebase: `useEffect` is effectively banned at call sites.
+
+The only legal call to `useEffect` is inside a single custom hook:
+
+    // useMountEffect.ts
+    import { useEffect } from "react";
+
+    export function useMountEffect(fn: () => void | (() => void)) {
+      useEffect(fn, []);
+    }
+
+Every other effect-shaped need must be expressed differently. Reach, in order:
+
+1. Derive during render. If a value depends on props or state, compute it inline or with `useMemo`. Do not mirror props into state via an effect.
+2. Event handlers. User-driven changes (clicks, input, submit, focus) run in `onClick` / `onChange` / `onSubmit` / etc. — never in an effect listening for the state they produced.
+3. React primitives. Prefer `useMemo`, `useCallback`, `useRef`, `useReducer`, `useId`, context, Suspense, and callback refs over effects.
+4. External subscriptions. Wrap websockets, event emitters, browser APIs, and third-party stores in `useSyncExternalStore`. If a library genuinely needs imperative one-shot setup/teardown (e.g. initialising a chart, attaching a non-React listener once), isolate it in a dedicated custom hook whose only effect is `useMountEffect`.
+
+Further rules:
+- `useState` is a last resort for render-relevant values. Prefer derived values, refs (for non-render state), and `useReducer` when several fields move together.
+- Component trees should push state down to the leaf that needs it. Lifting state is for *sharing*, not for "everything at the top."
+- Do not write `useEffect(() => { setX(derive(props)) }, [props])`. That is the canonical anti-pattern this rule exists to prevent.
+- Data fetching belongs in framework primitives (Next.js Server Components, React Query, SWR, loaders) or Suspense-based data sources — not in effects.
+
+When the instinct says "just drop in a `useEffect`," stop. Pick a primitive from the list above. If after a genuine attempt no primitive fits, write a named custom hook whose sole effect is `useMountEffect`, and include a one-line comment explaining why no other primitive works.""",
 }
 
 
